@@ -1,54 +1,30 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: end-of-file-fixer
+        exclude: '\.(parquet|db|duckdb|xlsx|brM3|dbm)$'
+
       - id: trailing-whitespace
+        exclude: '\.(md|parquet|db|duckdb|xlsx|brM3|dbm)$'
+
       - id: check-yaml
+      - id: check-toml
       - id: check-merge-conflict
+
       - id: check-added-large-files
-      - id: debug-statements
-
-  - repo: https://github.com/psf/black
-    rev: 25.1.0
-    hooks:
-      - id: black
-        language_version: python3
-
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.15.0
-    hooks:
-      - id: mypy
-        name: mypy (backend)
-        pass_filenames: false
-        args:
-          - --namespace-packages
-          - backend
-        additional_dependencies:
-          - types-requests
-          - types-PyYAML
-
-      - id: mypy
-        name: mypy (scraper)
-        pass_filenames: false
-        args:
-          - --namespace-packages
-          - scraper
-        additional_dependencies:
-          - types-requests
-          - types-PyYAML
+        args: ["--maxkb=5000"]
 
   - repo: local
     hooks:
-      - id: eslint-frontend
-        name: eslint (frontend)
-        entry: yarn --cwd frontend lint
+      - id: ruff
+        name: ruff
+        entry: ruff check --fix --unsafe-fixes
         language: system
-        files: "^frontend/.*\\.(ts|tsx|js|jsx)$"
-        pass_filenames: false
+        types_or: [python, pyi]
 
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v4.0.0-alpha.8
-    hooks:
-      - id: prettier
-        files: "\\.(js|jsx|ts|tsx|json|css|scss|html)$"
+      - id: ruff-format
+        name: ruff-format
+        entry: ruff format
+        language: system
+        types_or: [python, pyi]

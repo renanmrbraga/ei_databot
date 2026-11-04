@@ -1,58 +1,40 @@
 services:
   postgres:
-    image: postgres:latest
+    image: pgvector/pgvector:pg17
     container_name: chatbot_postgres
+    restart: "no"
     ports:
-      - '5432:5432' # Comentar em produção
+      - "127.0.0.1:5432:5432"
     environment:
-      POSTGRES_DB: chatbot
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: devmode123
+      POSTGRES_DB: ${POSTGRES_DB:-chatbot}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
-      - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
-    command:
-      - postgres
-      - -c
-      - config_file=/etc/postgresql/postgresql.conf
-      - -c
-      - hba_file=/etc/postgresql/pg_hba.conf
     networks:
       - chatbot-net
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"'
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-  mongo:
-    image: mongo:latest
-    container_name: chatbot_mongo
-    ports:
-      - '27017:27017' # Comentar em produção
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: devmode123
-    volumes:
-      - mongo_data:/data/db
-      - ./mongo/mongod.conf:/etc/mongod.conf:ro
-      - ./mongo/log:/var/log/mongodb:rw
-    user: root
-    command: ['mongod', '--auth', '--config', '/etc/mongod.conf']
-    networks:
-      - chatbot-net
-
-  backend:
+  chatbot:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: chatbot_backend
+      context: .
+      dockerfile: chatbot/Dockerfile
+    container_name: chatbot_api
     env_file:
-      - ./backend/.env
-    volumes:
-      - ./backend:/app
-    expose:
-      - '8000'
+      - ./.env
+    environment:
+      POSTGRES_HOST: postgres
+    ports:
+      - "127.0.0.1:8000:8000"
     depends_on:
-      - postgres
-      - mongo
+      postgres:
+        condition: service_healthy
     networks:
       - chatbot-net
 
@@ -61,29 +43,23 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: chatbot_frontend
-    env_file:
-      - ./frontend/.env
+    # O frontend recebe apenas variaveis nao sensiveis necessarias ao Vite.
     environment:
-      - VITE_HOST=0.0.0.0
-      - VITE_PORT=8080
-      - CHOKIDAR_USEPOLLING=true
-      - CHOKIDAR_INTERVAL=100
+      NODE_ENV: development
+      PORT: "8080"
+      API_PROXY_TARGET: http://chatbot:8000
     ports:
-      - '8080:8080'
+      - "127.0.0.1:8080:8080"
     volumes:
       - ./frontend:/app
-      - ./frontend/.env:/app/.env
       - frontend_node_modules:/app/node_modules
     depends_on:
-      - backend
+      - chatbot
     networks:
       - chatbot-net
-    extra_hosts:
-      - 'host.docker.internal:host-gateway'
 
 volumes:
   postgres_data:
-  mongo_data:
   frontend_node_modules:
 
 networks:

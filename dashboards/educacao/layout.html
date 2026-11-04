@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>__DASHBOARD_DOCUMENT_TITLE__</title>
+    __INLINE_CSS__
+  </head>
+  <body>
+    <script type="application/json" id="dashboard-data">
+      __EMBED_DASHBOARD_PAYLOAD__
+    </script>
+    <header class="header">
+      <div class="container">
+        <div class="head-line">
+          <div class="brand">
+            <div>
+              <h1 class="brand-name">Educacional</h1>
+              <div class="brand-sub">Censo Superior · Enade · Censo Escolar</div>
+            </div>
+          </div>
+          <div class="head-right">
+            <span class="private">USO INTERNO</span><span class="data-date" id="geradoEm"></span>
+          </div>
+        </div>
+        <div class="kpi-grid" id="kpis" aria-live="polite"></div>
+      </div>
+    </header>
+
+    <div class="dashboard-shell">
+      <!-- MENU LATERAL ESQUERDO -->
+      <aside class="dashboard-nav" aria-label="Navegação do relatório">
+        <div class="brand-mark" aria-hidden="true">M+</div>
+        <div class="sidebar-title">PÁGINAS</div>
+
+        <nav class="tabs" id="tabs" role="tablist" aria-label="Páginas do relatório">
+          <button class="tab active" role="tab" data-tab="geral" aria-selected="true">
+            <span class="tab-no">01</span> Visão Geral
+          </button>
+          <button class="tab" role="tab" data-tab="mapa" aria-selected="false">
+            <span class="tab-no">02</span> Mapa de Ingressantes
+          </button>
+          <button class="tab" role="tab" data-tab="evolucao_ies" aria-selected="false">
+            <span class="tab-no">03</span> Faixa Anual · IES
+          </button>
+          <button class="tab" role="tab" data-tab="evolucao_curso" aria-selected="false">
+            <span class="tab-no">04</span> Faixa Anual · Cursos
+          </button>
+          <button class="tab" role="tab" data-tab="ranking_ies" aria-selected="false">
+            <span class="tab-no">05</span> Ranking · IES
+          </button>
+          <button class="tab" role="tab" data-tab="ranking_curso" aria-selected="false">
+            <span class="tab-no">06</span> Ranking · Cursos
+          </button>
+          <button class="tab" role="tab" data-tab="enade_mapa" aria-selected="false">
+            <span class="tab-no">07</span> Mapa · Enade
+          </button>
+          <button class="tab" role="tab" data-tab="enade_ranking" aria-selected="false">
+            <span class="tab-no">08</span> Ranking · Enade
+          </button>
+          <button class="tab" role="tab" data-tab="basica" aria-selected="false">
+            <span class="tab-no">09</span> Educação Básica
+          </button>
+        </nav>
+      </aside>
+
+      <!-- FILTROS LATERAIS DIREITOS -->
+      <aside class="dashboard-side-filters" aria-label="Filtros do relatório">
+        <!-- EXPORTAÇÃO -->
+        <div class="sidebar-title">EXPORTAR</div>
+        <div class="tool-right">
+          <button class="action" id="exportHTML">HTML</button>
+          <button class="action" id="printPage">PDF · Aba</button>
+          <button class="action primary" id="printAll">PDF · Todas</button>
+        </div>
+
+        <!-- FILTROS -->
+        <div class="sidebar-title">FILTROS</div>
+
+        <div class="tools">
+          <label class="label-small" for="yearSelect">Ano de referência</label>
+          <select id="yearSelect" class="year-select" aria-label="Ano do indicador"></select>
+
+          <span class="label-small">Exibição dos rankings</span>
+          <div class="segment" id="metricButtons" role="group" aria-label="Métrica dos rankings">
+            <button class="active" data-metric="quantidade">Quantidade</button>
+            <button data-metric="percentual">%</button>
+          </div>
+
+          <button class="action" id="toggleFilters" aria-expanded="true">
+            Mostrar / ocultar filtros
+          </button>
+          <button class="action" id="resetFilters">Limpar filtros</button>
+        </div>
+
+        <div id="filterChips" class="filter-chips" aria-live="polite"></div>
+
+        <div class="filter-drawer hidden" id="filterDrawer">
+          <div class="filter-title">Filtros avançados</div>
+          <div class="filter-fields" id="advancedFilters"></div>
+        </div>
+      </aside>
+
+      <!-- CONTEÚDO CENTRAL -->
+      <main class="dashboard-content" id="pages">
+        <!-- SECAO:geral -->
+        <!-- SECAO:mapa -->
+        <!-- SECAO:evolucao_ies -->
+        <!-- SECAO:evolucao_curso -->
+        <!-- SECAO:ranking_ies -->
+        <!-- SECAO:ranking_curso -->
+        <!-- SECAO:enade_mapa -->
+        <!-- SECAO:enade_ranking -->
+        <!-- SECAO:basica -->
+        <section class="panel foot-notes" id="about" aria-label="Metodologia e limitações">
+          <h3>Metodologia e limitações</h3>
+          <div class="separator"></div>
+          <p>
+            <strong>Educação Superior:</strong> ingressantes, vagas e matrículas somados da
+            <code>fact_educacao_superior_turno</code> (presencial). Concorrentes = instituições
+            distintas com registros no contexto. Os indicadores de vagas, inscritos, matriculados e
+            concluintes não são equivalentes entre si nem compõem um funil individual.
+          </p>
+          <p>
+            <strong>Faixas anuais:</strong> consideram todos os anos do histórico após os demais
+            filtros, independentemente do ano selecionado na barra superior; este aparece destacado
+            na visualização. A participação (%) usa o volume do conjunto exibido, no mesmo ano e
+            contexto de filtros.
+          </p>
+          <p>
+            <strong>Enade:</strong> conceito = maior conceito válido (>0) no ano selecionado para a
+            IES e curso/localidade filtrados. O volume de ingressantes é obtido da
+            <code>fact_educacao_superior</code> geral, buscando, <em>por IES</em>, o último ano de
+            Censo com ingressantes positivos até o ano selecionado. Assim, os ingressantes podem ser
+            de ano diferente da avaliação e não estão necessariamente vinculados aos concluintes
+            avaliados. O filtro de turno não se aplica ao Enade.
+          </p>
+          <p>
+            <strong>Geografia:</strong> bolhas representam municípios onde os cursos são oferecidos,
+            não a sede institucional nem a origem de cada aluno. Coordenadas são centros municipais,
+            sem relação com uma cidade de referência. O símbolo EAD não representa um município físico.
+          </p>
+          <p>
+            <strong>Educação Básica:</strong> agrupamento por município, ano e rede. Educação
+            Infantil, Ensino Fundamental, Ensino Médio, Educação Profissional e EJA podem possuir
+            recortes metodológicos diferentes e <strong>não devem ser somados entre si</strong>.
+            Educação Profissional Técnica é um subconjunto do indicador Educação Profissional. O
+            número de escolas é uma contagem distinta por grupo, e não o total de matrículas.
+          </p>
+          <p>
+            <strong>Privacidade e atualização:</strong> o documento contém exclusivamente dados
+            agregados ou institucionais das tabelas Gold locais; nenhum dado de candidato é
+            exportado. A atualização exige nova execução da etapa do dashboard. Uso interno.
+          </p>
+        </section>
+      </main>
+    </div>
+    <footer>
+      <div class="container footer-wrap">
+        <span>Educacional · Fontes: INEP</span>
+        <span id="footerGenerated"></span>
+        <span class="privacy">Distribuição interna controlada.</span>
+      </div>
+    </footer>
+    <div id="toast" role="status"></div>
+    __INLINE_JS__
+  </body>
+</html>

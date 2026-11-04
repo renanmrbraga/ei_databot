@@ -1,0 +1,53 @@
+/* Paleta padrao; dashboards podem sobrescrever variaveis no seu estilo.css. */
+:root {
+                --navy: #133b58;
+                --navy-deep: #092940;
+                --teal: #147e80;
+                --amber: #d58b40;
+                --bg: #f3f6f8;
+                --white: #fff;
+                --line: #dce6ec;
+                --muted: #617485;
+                --text: #1c3346;
+                --green: #126c65;
+                --shadow: 0 4px 22px rgba(18, 48, 68, 0.055);
+                --radius: 16px;
+            }
+/* Estilos gerais compartilhados: o dashboard define suas cores em :root. */
+* {
+                box-sizing: border-box;
+            }
+html {
+                scroll-behavior: smooth;
+            }
+body {
+                margin: 0;
+                background: var(--bg);
+                color: var(--text);
+                font-family:
+                    Segoe UI,
+                    Inter,
+                    Arial,
+                    sans-serif;
+                font-size: 14px;
+                line-height: 1.42;
+            }
+button,
+            input,
+            select {
+                font: inherit;
+            }
+button {
+                cursor: pointer;
+            }
+button:focus-visible,
+            select:focus-visible,
+            input:focus-visible,
+            [tabindex]:focus-visible {
+                outline: 3px solid #36a8a4;
+                outline-offset: 2px;
+            }
+.hidden,
+            [hidden] {
+                display: none !important;
+            }

@@ -1,332 +1,289 @@
-![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)
-![Python](https://img.shields.io/badge/Python-3.13%2B-blue?style=for-the-badge&logo=python&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-00C7B7?style=for-the-badge&logo=fastapi&logoColor=white)
-![React](https://img.shields.io/badge/React-2023-%2361DAFB?style=for-the-badge&logo=react&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+# EI DataBot
 
-# DataBot
+**EI DataBot** — plataforma experimental de engenharia de dados e consultas analíticas sobre a educação brasileira.
 
-Um **chatbot híbrido RAG** (Retrieval-Augmented Generation) de alta performance, desenvolvido para entregar respostas precisas e contextualizadas sobre dados públicos de municípios brasileiros.
-O primeiro passo consiste em um **pipeline de scraping e ETL** que coleta automaticamente dados de APIs públicas (IBGE/SIDRA, INEP, QEdu, etc.) e os armazena no PostgreSQL, garantindo uma fonte de verdade atualizada.
+> **Marco proposto:** Alpha 1 (`v0.1.0-alpha.1`) · **Referência:** 03/11/2026 · **Estado:** desenvolvimento local, não preparado para exposição pública.
+>
+> Esta versão marca a primeira integração funcional após a refatoração estrutural. Não significa que todos os indicadores, os testes funcionais, a segurança multiusuário ou os dashboards estejam concluídos.
 
-A plataforma integra:
+O projeto integra dados públicos de educação em um pipeline **Raw → Bronze → Silver → Gold**, com processamento em **Python/Polars**, armazenamento em **Parquet** e publicação de dados analíticos no **PostgreSQL**. Um chatbot em **React/TypeScript** consulta uma API **FastAPI** que interpreta perguntas com **Gemini**, executa apenas consultas SQL previamente autorizadas e explica os resultados obtidos no banco. As regras documentais são recuperadas por **RAG com pgvector**.
 
-- **FastAPI** no backend, para um servidor leve, assíncrono e escalável.
-- **React + Vite + TailwindCSS** no frontend, garantindo uma experiência de usuário fluida e responsiva.
-- **LangChain** e **Groq (Gemma-2-9b-it)** para geração de linguagem natural, estritamente guiada por templates por agente.
-- **HuggingFace Embeddings** + **Pinecone** para indexação semântica e recuperação dinâmica de contexto.
-- **PostgreSQL** como fonte de verdade para dados tabulares (população, PIB, educação, infraestrutura) e **MongoDB** para logging estruturado de cada interação.
+**Integração:** o chatbot e os dashboards compartilham a camada Gold produzida pelo ETL. O chatbot consulta as tabelas analíticas publicadas no PostgreSQL, enquanto os dashboards são gerados a partir dos arquivos Parquet Gold. O chatbot não consulta diretamente os dashboards.
 
-Com agentes especializados (População, Economia, Educação Básica, Educação Técnica e Comparativo), o Chatbot:
+## O que está disponível na Alpha 1
 
-1. **Interpreta** sua pergunta (detecção de cidade, tema e métrica) por regras heurísticas e keywords, **podendo escalar para a própria LLM interpretar a pergunta**.
-2. **Recupera** dentro do PostgreSQL ou, no caso de múltiplos municípios, faz comparativos diretos.
-3. **Gera** a saída em Markdown enriquecido (análise de dados e conclusão objetiva), apoiada em prompts customizados.
-4. **Registra** cada passo: entrada, agente, fontes, cidades e timestamp em MongoDB, garantindo auditabilidade e métricas de uso.
+| Componente                       | Estado verificado ou conhecido                                                                                                                 |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| ETL Medallion (`educacao`)       | 27 etapas concluídas com sucesso na execução integral validada durante a refatoração.                                                          |
+| PostgreSQL Gold                  | Cinco dimensões e cinco tabelas fato, totalizando 2.702.972 registros publicados e validados.                                                  |
+| RAG documental                   | Cinco documentos elegíveis e 151 fragmentos ativos na última conferência; sincronização incremental sem pendências no último `--dry-run`.      |
+| Backend FastAPI                  | Chat, interpretação estruturada Gemini, RAG auxiliar, SQL parametrizado e histórico PostgreSQL/JSONB implementados.                            |
+| Indicadores liberados no chatbot | `CAT-EB-001` (matrículas da educação básica) e `CAT-ES-023` (matrículas da educação superior).                                                 |
+| Frontend React                   | Consulta real ao backend, exibição de fontes, avisos e dados estruturados, continuidade de contexto, navegação e exclusão de conversas locais. |
+| Histórico                        | Mensagens persistidas em `app.messages`; lista de sessões conhecidas pelo navegador, com restauração pelo UUID.                                |
+| Dashboard                        | Criado de acordo com as regras de negócio e dados do ETL.                                                                                      |
+| Segurança de acesso              | **Não concluída:** ainda não há autenticação/autorização de usuários nem isolamento de sessões por identidade.                                 |
 
-Este projeto foi concebido para atender às necessidades de:
+## Arquitetura
 
-- **Consultas inteligentes** (quantas escolas, matrículas, docentes, turmas) por município.
-- **Análises comparativas** entre duas ou mais cidades, com cálculos diretos de diferença e ranking.
-- **Extensibilidade** para novas fontes, métricas e agentes setoriais.
+```mermaid
+flowchart TD
+    SOURCES[Fontes públicas: INEP e IBGE/SIDRA] --> RAW[Raw]
+    RAW --> BRONZE[Bronze]
+    BRONZE --> SILVER[Silver]
+    SILVER --> GOLD[Gold em Parquet]
 
----
+    GOLD --> SYNC[Publicação PostgreSQL]
+    SYNC --> PG[(PostgreSQL: gold)]
+    GOLD --> DASH[Dashboards independentes]
 
-## 📌 Índice
+    DOCS[Cinco documentos Markdown] --> ING[Sincronização RAG incremental]
+    ING --> VEC[(PostgreSQL: rag / pgvector)]
 
-- [✨ Funcionalidades](#-funcionalidades)
-- [📊 Fontes de Dados](#-fontes-de-dados)
-- [⚙️ Arquitetura](#️-arquitetura)
-- [🧰 Tecnologias](#-tecnologias)
-- [💬 Documentos](#-exemplos-de-perguntas)
-- [🚀 Setup](#-setup)
-- [📄 Licença](#-licença)
-- [📢 Notice](#-notice)
-
----
-
-## ✨ Funcionalidades
-
-- Consulta inteligente por município (`população`, `PIB`, `infraestrutura`, `escolas`, etc.)
-- Comparativos entre cidades com gráficos interativos
-- Geração de resposta interpretada por LLM (`gemma-2-9b-it` via Groq)
-- Embeddings com **HuggingFace + Pinecone**
-- Logs completos em MongoDB (mensagens, cidades, agentes, dashboards gerados)
-- Pipeline de scraping e ETL com PostgreSQL
-- Backend FastAPI + API REST estruturada
-- Frontend moderno (React + Vite + Tailwind)
-- Integração com APIs do IBGE e dados educacionais do INEP
-
----
-
-## 📊 Fontes de Dados
-
-- **IBGE / SIDRA** – População e PIB
-- **INEP / Censo Escolar 2023** – Matrículas, escolas, docentes, infraestrutura escolar
-- **QEdu** e outras fontes públicas (em expansão)
-- **Dados tratados e integrados por `codigo_ibge`**
-
----
-
-## ⚙️ Arquitetura
-
-<details>
-<summary><strong>📁 backend/</strong> — Backend em FastAPI</summary>
-
-```bash
-├── config/               # Configurações específicas do backend (ngrok, environment, etc.)
-├── core/                 # Agentes semânticos, roteadores, prompts e engine LLM
-├── data/                 # Dados baixados e embeddings locais gerados
-├── database/             # Conexões e funções auxiliares para PostgreSQL e MongoDB
-├── startup/              # Inicialização automática de embeddings e serviços
-├── tests/                # Testes automatizados do backend
-├── uploads-temp/         # Diretório temporário para uploads do usuário
-├── utils/                # Funções utilitárias (logs, embedder, retriever, etc.)
-├── .dockerignore         # Arquivos ignorados no build da imagem Docker do backend
-├── .env                  # Variáveis de ambiente reais (não versionadas)
-├── .env.example          # Modelo de variáveis para ambiente backend
-├── Dockerfile            # Dockerfile com build do backend em FastAPI
-├── main.py               # Entrypoint principal da API FastAPI
-└── requirements.txt      # Dependências Python do backend
+    UI[React / Vite] --> API[FastAPI]
+    API --> CHAT[Orquestração do chat]
+    CHAT --> HIST[(PostgreSQL: app / JSONB)]
+    CHAT --> RET[Busca de contexto RAG]
+    RET --> VEC
+    CHAT --> LLM[Gemini: interpretar e responder]
+    CHAT --> SQL[SQL autorizado e parametrizado]
+    SQL --> PG
 ```
 
-</details>
+### Responsabilidades dos schemas
 
-<details>
-<summary><strong>📁 docs/</strong> — Documentação complementar</summary>
+| Schema | Responsabilidade                                                                                   |
+| ------ | -------------------------------------------------------------------------------------------------- |
+| `gold` | Fatos, dimensões e dados analíticos provenientes do ETL.                                           |
+| `rag`  | Documentos, fragmentos, embeddings, versões, cache e catálogo técnico do Gold.                     |
+| `app`  | Sessões UUID e mensagens JSONB, com exclusão em cascata das mensagens quando uma sessão é apagada. |
 
-```bash
-├── Explicação.md         # Documento de Business Understanding do projeto
-└── Perguntas.md          # Exemplos prontos de perguntas ao chatbot
+A LLM **não gera SQL livre** nem é a fonte dos números. O Python valida indicador, período, município, UF e operação antes de executar consultas parametrizadas. O RAG fornece contexto metodológico, sem autorizar novas operações ou indicadores.
+
+## Escopo analítico do chatbot
+
+| ID           | Indicador                       | Período previsto no contrato | Operações                   |
+| ------------ | ------------------------------- | ---------------------------- | --------------------------- |
+| `CAT-EB-001` | Matrículas da educação básica   | 2018–2025                    | `SOMA_ANUAL`, `SERIE_ANUAL` |
+| `CAT-ES-023` | Matrículas da educação superior | 2018–2024                    | `SOMA_ANUAL`, `SERIE_ANUAL` |
+
+**Limitações atuais:** o chatbot não compara dois municípios numa única solicitação, não habilita automaticamente todos os indicadores documentados e não soma matrículas de anos distintos como se fossem ocorrências acumuláveis. A consulta municipal requer UF para desambiguar o município. As restrições geográficas da modalidade EAD devem ser respeitadas nas análises da educação superior. Pedidos fora do contrato são recusados de forma controlada.
+
+As respostas podem incluir `resposta`, `fontes`, `cidade`, `uf`, `tema`, `dados_brutos` e `avisos`. A apresentação dos avisos é separada do texto explicativo para evitar notas administrativas desnecessárias. Isso não substitui a revisão metodológica dos resultados.
+
+### Distâncias geográficas
+
+O ETL educacional calcula a distância geográfica em quilômetros entre os municípios e uma localidade de referência configurável em `etl/educacao/config.py`, utilizando as variáveis `CIDADE_REFERENCIA` e `UF_REFERENCIA`.
+
+A dimensão Gold `dim_localidade` armazena esse resultado em `distancia_referencia_km`. O cálculo utiliza a fórmula de Haversine, representando a distância aproximada em linha reta entre coordenadas geográficas, e não a distância rodoviária.
+
+Na configuração atualmente validada, a referência é Rio de Janeiro/RJ. Registros sem coordenadas ou sem localização municipal aplicável podem apresentar distância nula.
+
+O dashboard já recebe os dados de distância, mas o filtro interativo por distância geográfica está reservado para uma versão posterior à Alpha 1.
+
+## Documentação de negócio e operacional
+
+O conteúdo canônico das regras está em `docs/`. **Somente os cinco primeiros documentos** participam da indexação RAG. Sincronizar o RAG não significa aprovar uma regra.
+
+| Documento                                      | Assunto                                                                  |
+| ---------------------------------------------- | ------------------------------------------------------------------------ |
+| [Educação Superior](docs/educacao_superior.md) | Fontes, granularidade, matrículas, EAD e restrições territoriais.        |
+| [Educação Básica](docs/educacao_basica.md)     | Censo Escolar, escolas, matrículas e limites de interpretação.           |
+| [Avaliações](docs/avaliacoes.md)               | ENADE, CPC, IDD, IGC e regras metodológicas.                             |
+| [Indicadores](docs/indicadores.md)             | Identificadores, métricas, operações e agregações autorizadas.           |
+| [Regras Gerais](docs/regras_gerais.md)         | Contratos transversais, granularidade, rastreabilidade e uso do RAG.     |
+| [Comandos](docs/comandos.md)                   | Guia operacional de ETL, PostgreSQL, validações e RAG; **não indexado**. |
+
+### RAG incremental
+
+A sincronização é conduzida por `postgres/sync_rag.py` e utiliza hashes de documentos e fragmentos, cache persistente de embeddings e controle de versões. O modelo documental é `gemini-embedding-001` com vetores de **768 dimensões**. Fragmentos inalterados são reutilizados; alterações geram apenas o trabalho incremental necessário.
+
+```powershell
+# Inspeção sem escrita nem chamada para gerar embeddings
+python -m postgres.sync_rag --dry-run
+
+# Executar somente quando houver mudanças documentais aprovadas para sincronização
+python -m postgres.sync_rag
 ```
 
-</details>
+Documentos em revisão só entram na recuperação de teste quando habilitado explicitamente `RAG_INCLUDE_DRAFTS=true` ou a opção equivalente `--include-drafts` na CLI. O RAG não concede privilégios SQL nem aprova documentos automaticamente.
 
-<details>
-<summary><strong>📁 frontend/</strong> — Interface do Chatbot (React + Vite + TypeScript)</summary>
+## Requisitos de desenvolvimento
 
-```bash
-├── ngrok/                # Variáveis do ngrok e script para expor endereço no terminal
-├── public/               # Assets públicos servidos pelo Vite (favicon, index, etc.)
-├── src/                  # Interface do chatbot (React + TypeScript)
-├── .dockerignore         # Arquivos ignorados no build da imagem Docker do frontend
-├── .env                  # Variáveis de ambiente reais do frontend
-├── .env.example          # Modelo de variáveis para frontend
-├── components.json       # Configurações opcionais de componentes dinâmicos
-├── Dockerfile            # Dockerfile do frontend com suporte ao ngrok
-├── eslint.config.js      # Configuração do ESLint (análise estática do código)
-├── index.html            # HTML base usado pelo Vite para montar o app
-├── package.json          # Lista de dependências, scripts e metadados do frontend
-├── postcss.config.js     # Plugins de pós-processamento CSS (ex: autoprefixer)
-├── tailwind.config.ts    # Configurações visuais customizadas do Tailwind
-├── tsconfig.app.json     # Configuração TypeScript para a aplicação React
-├── tsconfig.json         # Configuração global do TypeScript
-├── tsconfig.node.json    # Configuração para scripts/utilitários Node.js
-├── vite.config.ts        # Configuração do Vite (server, proxy, plugins)
-└── yarn.lock             # Snapshot das dependências instaladas (Gerenciador Yarn)
+- Windows ou Linux, ou outro ambiente compatível com Python e Docker.
+- Python 3.13 e dependências do `pyproject.toml`.
+- Node.js e npm compatíveis com as dependências declaradas em `frontend/package.json`.
+- Docker Compose com PostgreSQL e a extensão pgvector, conforme a configuração local do projeto.
+- Credenciais de desenvolvimento para PostgreSQL e Gemini, fornecidas por variáveis de ambiente locais **não versionadas**.
+
+A configuração do backend é carregada de `.env` na raiz do projeto. Consulte os exemplos de ambiente presentes no repositório e configure apenas os valores necessários, como `POSTGRES_*`, `LLM_API_KEY`, `LLM_MODEL` e, para testes com documentação em revisão, `RAG_INCLUDE_DRAFTS`.
+
+## Execução local
+
+Execute os comandos a partir da raiz do repositório, salvo indicação diferente.
+
+### 1. Instalar dependências Python
+
+```powershell
+python -m pip install -e ".[etl]"
+python -m pip check
 ```
 
-</details>
+### 2. Iniciar PostgreSQL
 
-<details>
-<summary><strong>📁 mongo/</strong> — Configurações do MongoDB</summary>
-
-```bash
-└── mongod.conf           # Arquivo de configuração do MongoDB (log, path, porta)
+```powershell
+docker compose up -d postgres
 ```
 
-</details>
+Os schemas e migrações devem existir antes da operação da API. Para uma instalação nova, aplique os scripts de criação necessários na ordem documentada em [Comandos](docs/comandos.md); **não reaplique scripts indiscriminadamente a um banco já populado**.
 
-<details>
-<summary><strong>📁 postgres/</strong> — Configurações do PostgreSQL</summary>
+### 3. ETL e sincronização analítica (quando necessário)
 
-```bash
-├── init.sql              # Script de inicialização do banco PostgreSQL (tabelas, dados)
-├── pg_hba.conf           # Configuração de acesso do PostgreSQL (host-based authentication)
-└── postgresql.conf       # Configuração geral do PostgreSQL (port, logging, etc.)
+```powershell
+# Visualizar as etapas sem executar
+python .\main.py --plan
+
+# Executar o pipeline completo somente quando necessário
+python .\main.py --run
 ```
 
-</details>
+**Atenção:** `--run` executa o ETL, publica as tabelas Gold, sincroniza o catálogo e valida os resultados. Pode sobrescrever arquivos processados e substituir tabelas analíticas existentes. Não é necessário executar novamente `postgres.sync` ou `postgres.sync_catalog` após uma execução completa bem-sucedida. Consulte [Comandos](docs/comandos.md) para executar etapas individuais.
 
-<details>
-<summary><strong>📁 scraper/</strong> — Pipelines de scraping e ETL</summary>
+### 4. Backend FastAPI
 
-```bash
-├── config/               # Arquivos de configuração e parâmetros de scraping
-├── core/                 # Scrapers principais (SIDRA, INEP, QEdu, Portal da Transparência)
-├── data/                 # Dados brutos, limpos e tratados pelo pipeline ETL
-├── utils/                # Funções auxiliares de scraping e transformação
-├── requirements.txt      # Dependências Python do scraper
-└── scrap.py              # Pipeline central do scraping (orquestração dos módulos)
+Em um terminal com o ambiente Python ativo:
+
+```powershell
+python -m uvicorn chatbot.chatbot:app --host 127.0.0.1 --port 8000
 ```
 
-</details>
+Verifique a disponibilidade HTTP:
 
-<details>
-<summary><strong>📁 raiz/</strong> — Configurações globais e arquivos principais</summary>
-
-```bash
-├── .gitignore                   # Arquivos e pastas ignoradas pelo Git (ex: .env, __pycache__)
-├── .pre-commit-config.yaml      # Configuração dos hooks automatizados de pré-commit
-├── .prettierrc                  # Regras de formatação automática para o frontend
-├── docker-compose.yml           # Orquestração de todos os serviços com Docker Compose
-├── LICENSE                      # Licença MIT do projeto
-├── mypy.ini                     # Regras de tipagem estática para o Python com mypy
-├── pyrightconfig.json           # Regras de tipagem estática do TypeScript com Pyright
-└── README.md                    # Documentação principal do projeto
+```powershell
+Invoke-RestMethod http://127.0.0.1:8000/health
 ```
 
-</details>
+`/health` verifica a disponibilidade da aplicação HTTP, não a conexão com o banco ou a API Gemini.
 
----
+### 5. Frontend React/Vite
 
-## 🧰 Tecnologias
+Em outro terminal:
 
-| Camada             | Tecnologias                                             |
-| ------------------ | ------------------------------------------------------- |
-| **Backend**        | Python + FastAPI + LangChain + Groq (`gemma-2-9b-it`)   |
-| **Frontend**       | TypeScript + React + Tailwind CSS + Vite                |
-| **Dados**          | PostgreSQL + Pandas + INEP/SIDRA Scrapers               |
-| **RAG**            | HuggingFace + Pinecone Embeddings                       |
-| **Orquestração**   | Agents semânticos + roteamento inteligente              |
-| **Dashboards**     | Exportação como ECharts                                 |
-| **Infraestrutura** | Docker + logging estruturado + inicialização automática |
-
----
-
-## 💬 Documentos
-
-- Para exemplos de perguntas, veja [Perguntas](docs/Perguntas.md).
-
----
-
-## 🚀 Setup
-
-### 1. Instale o Docker Desktop (Windows/macOS) ou Docker Engine (Linux)
-
-- [Instalar no Windows/macOS](https://www.docker.com/products/docker-desktop/)
-- [Instalar no Ubuntu](https://docs.docker.com/engine/install/ubuntu/)
-- [Instalar no Arch](https://wiki.archlinux.org/title/Docker)
-
-### 2. Clone o repositório
-
-```bash
-git clone https://github.com/renanmrbraga/chatbot-llm.git
-cd chatbot-llm
+```powershell
+npm --prefix .\frontend ci
+npm --prefix .\frontend run dev
 ```
 
-### 3. Configure os arquivos `.env`
+### 6. Testar uma consulta
 
-Copie os exemplos:
+Na interface, pergunte:
 
-```bash
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env
+> Quantas matrículas da educação básica houve em Volta Redonda/RJ em 2025?
+
+Depois, na mesma conversa:
+
+> E em 2024?
+
+A segunda pergunta deve preservar o indicador e a localidade. O resultado observado anteriormente foi de 56.498 matrículas em 2025 e 57.432 em 2024. São verificações de integração anteriores, não garantia de atualização dos dados em tempo real.
+
+Também é possível consultar diretamente a API:
+
+```powershell
+$corpo = @{
+    pergunta = 'Quantas matrículas da educação básica houve em Volta Redonda/RJ em 2025?'
+    session_id = [guid]::NewGuid().ToString()
+} | ConvertTo-Json
+
+Invoke-RestMethod `
+    -Uri 'http://127.0.0.1:8000/api/chat' `
+    -Method Post `
+    -ContentType 'application/json; charset=utf-8' `
+    -Body ([System.Text.Encoding]::UTF8.GetBytes($corpo))
 ```
 
-### 4. Configure as variáveis de ambiente (exemplo)
+## Sessões e histórico
 
-#### Backend
+- Cada nova conversa recebe um UUID utilizado para identificar a sessão no backend.
+- O histórico canônico das mensagens é persistido no PostgreSQL, no schema `app`.
+- O frontend mantém uma lista local de sessões conhecidas pelo navegador, limitada a 50 entradas.
+- Ao selecionar uma conversa anterior, o frontend recupera as mensagens pela API.
+- É possível iniciar, alternar e excluir conversas. A exclusão confirmada pelo backend também remove as mensagens associadas.
+- O histórico recuperado preserva mensagens, fontes e avisos, mas não reconstrói os dados analíticos brutos de respostas antigas.
+- Não existe autenticação ou autorização por usuário nesta versão. O UUID não deve ser considerado um mecanismo de segurança.
+- A aplicação destina-se ao desenvolvimento local e não deve ser exposta publicamente sem controles de acesso.
 
-```dotenv
-# === POSTGRES ===
-POSTGRES_HOST=postgres
-POSTGRES_PORT=5432
-POSTGRES_DB=chatbot
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=devmode123
-DATABASE_URL=postgresql+psycopg://postgres:devmode123@postgres:5432/chatbot
+## Qualidade e verificações
 
-# === MONGODB ===
-MONGO_HOST=mongo
-MONGO_PORT=27017
-MONGO_DB=chatbot_logs
-MONGO_USER=admin
-MONGO_PASSWORD=devmode123
-MONGO_URL=mongodb://admin:devmode123@mongo:27017/?authSource=admin
+### Python
 
-# === LLM (Groq - Gemma 2B) ===
-GROQ_API_KEY=sua-chave-groq
-
-# === PINECONE (Embeddings Vetoriais) ===
-PINECONE_API_KEY=sua-chave-pinecone
-PINECONE_ENVIRONMENT=us-east-1
-PINECONE_INDEX=sua-index-pinecone
-
-# === EMBEDDING CONFIGURATION ===
-EMBEDDING_PROVIDER=local
-EMBEDDING_MODEL=BAAI/bge-small-en-v1.5
-
-# === PERFOMANCE (auto | turbo | safe) ===
-PERFORMANCE_LEVEL=auto
+```powershell
+python -m ruff check chatbot etl dashboards health postgres tests main.py
+python -m unittest discover -s tests -p 'test_*.py' -q
+python -m pip check
+python -m postgres.validate_gold --offline
+python -m postgres.sync_rag --dry-run
 ```
 
-#### Frontend
+Os avisos de revisão humana apresentados por `validate_gold --offline` são esperados enquanto os cinco documentos não forem formalmente aprovados. Um aviso de depreciação relacionado a Starlette/TestClient também foi observado na suíte Python; ele ainda precisa ser investigado em uma revisão de dependências.
 
-```dotenv
-NGROK_AUTHTOKEN=sua-chave-ngrok
+Para uma auditoria com banco, avalie executar `python -m postgres.validate_gold --deep` após confirmar que o ambiente está pronto e os custos operacionais são aceitáveis.
+
+### Frontend
+
+```powershell
+npm --prefix .\frontend run check
+npm --prefix .\frontend audit --omit=dev
+npm --prefix .\frontend audit
 ```
 
-### 4. Suba o sistema com Docker Compose
+`check` executa TypeScript, ESLint, testes JavaScript e build Vite. Na última instalação reportada, o npm mostrou **12 vulnerabilidades moderadas no conjunto instalado**. A distribuição entre produção e desenvolvimento ainda precisa de auditoria específica; **não use `npm audit fix --force` sem avaliar o impacto das alterações**.
 
-```bash
-docker-compose up --build
+## Estrutura principal do repositório
+
+```text
+ei_databot/
+├── chatbot/                # API FastAPI e serviços conversacionais
+├── dashboards/             # Dashboards gerados a partir do Gold
+├── data/                   # Dados locais não versionados
+├── docs/                   # Regras de negócio e guia operacional
+├── etl/                    # Pipeline Raw/Bronze/Silver/Gold
+├── frontend/               # React, TypeScript e Vite
+├── health/                 # Verificações de integridade
+├── postgres/               # Gold, RAG, catálogo e histórico JSONB
+├── tests/                  # Testes Python
+├── main.py                 # Orquestrador principal do ETL
+├── docker-compose.yml      # Infraestrutura local
+├── pyproject.toml          # Dependências e configuração Python
+├── .env.example            # Exemplo de configuração sem credenciais
+├── LICENSE
+└── README.md
 ```
 
-Acesse:
+A existência e o conteúdo definitivo de `.gitignore`, `docker-compose.yml`, `.env.example`, documentação e scripts operacionais devem ser conferidos na auditoria pré-commit. Arquivos temporários, caches, bancos locais, dumps, relatórios de auditoria, backups e credenciais **não** devem ser adicionados ao repositório.
 
-- Backend: `http://localhost:8000`
-- Frontend: `http://localhost:8080`
-- Ngrok (link online): gerado dinamicamente no terminal
+## Limitações e pendências da Alpha 1
 
----
+- Autenticação, autorização por usuário, isolamento de sessões, rate limiting e política de retenção ainda não foram implementados ou validados para uso público.
+- O PostgreSQL de desenvolvimento ainda requer revisão de privilégios mínimos e credenciais de serviço.
+- Falta ampliar os testes funcionais, principalmente séries anuais, educação superior/EAD, recortes inválidos, ausência de dados, isolamento de sessões e conferência independente do SQL Gold.
+- Não há comparação direta de municípios nem geração de gráficos e arquivos pelo chatbot.
+- A documentação de negócio permanece com revisão humana pendente; não alterar esses status automaticamente.
+- Necessária auditoria dos arquivos versionados, de possíveis segredos no Git, das dependências npm e dos arquivos Markdown antes do marco Alpha 1.
+- A interface funciona localmente, mas não foi submetida a testes de segurança nem preparada para implantação pública.
+- A integração com Gemini depende de um serviço externo, sujeito a cotas de utilização, limites de requisições, latência variável e indisponibilidade. O uso de um plano gratuito não garante disponibilidade contínua do chatbot.
 
-## 📄 Licença
+## Segurança e política de contribuição
 
-Este projeto está licenciado sob os termos da [Licença MIT](./LICENSE).
+Antes de qualquer `git add`, commit, tag ou publicação:
 
----
+1. Inspecione o `git status`, os arquivos não rastreados e o diff do que será incluído no commit.
+2. Confirme que `.env`, backups, dumps, datasets locais, tokens, chaves privadas, logs e artefatos de build não estão versionados.
+3. Verifique **também o histórico do Git**: remover um segredo do arquivo atual não o remove de commits anteriores. Credenciais expostas devem ser revogadas/rotacionadas e o histórico tratado antes da publicação.
+4. Execute os testes, linters, validações documentais e auditorias de dependências.
+5. Confirme que os scripts de ambiente e as rotas HTTP não expõem dados sensíveis ou sessões a usuários não autorizados.
 
-## 📢 NOTICE – Uso de Dados Públicos
+O projeto usa fontes públicas e métodos analíticos reproduzíveis, mas diferenças de cobertura, unidade e metodologia precisam ser consideradas antes de interpretar resultados. Nenhuma resposta do modelo substitui os microdados oficiais ou a validação técnica dos indicadores.
 
-Este projeto utiliza dados públicos obtidos de fontes oficiais do governo brasileiro, de acordo com os princípios da Lei de Acesso à Informação (Lei nº 12.527/2011) e demais normas de dados abertos.
+## Licença
 
-## 🗂️ Fontes de Dados Utilizadas
-
-- **IBGE (Instituto Brasileiro de Geografia e Estatística)**
-
-  - SIDRA API, Downloads em CSV e GeoJSON
-  - [https://sidra.ibge.gov.br](https://sidra.ibge.gov.br)
-
-- **INEP (Instituto Nacional de Estudos e Pesquisas Educacionais Anísio Teixeira)**
-
-  - Censo Escolar, Microdados e Suplementos Técnicos
-  - [https://www.gov.br/inep](https://www.gov.br/inep)
-
-- **FNDE (Fundo Nacional de Desenvolvimento da Educação)** `em breve`
-
-  - Programas educacionais e orçamentários
-  - [https://www.gov.br/fnde](https://www.gov.br/fnde)
-
-- **Portal da Transparência** `em breve`
-  - Gastos públicos federais, estaduais e municipais
-  - [https://www.portaltransparencia.gov.br](https://www.portaltransparencia.gov.br)
-
-## ⚠️ Sobre a Interpretação dos Dados
-
-As respostas geradas por este sistema são **interpretadas por um modelo de linguagem (LLM)** com base em dados públicos estruturados. Isso significa que podem haver variações na apresentação e análise dos dados. Sempre consulte os dados brutos nas fontes oficiais para tomada de decisão crítica.
-
-## 📅 Última atualização dos dados
-
-- Dados IBGE: Abril de 2025
-- Dados INEP: Censo Escolar 2023
-- Dados FNDE: Orçamento 2024 `em breve`
-- Portal da Transparência: Atualizações em tempo real `em breve`
-
----
-
-## 📬 Contato
-
-Para dúvidas ou solicitações formais sobre os dados utilizados, me envie um [e-mail](mailto:renanmrbraga@gmail.com) ou acesse meu [LinkedIn](https://www.linkedin.com/in/renanmrbraga).
+Distribuído sob a [licença MIT](LICENSE), conforme o arquivo `LICENSE` do repositório.

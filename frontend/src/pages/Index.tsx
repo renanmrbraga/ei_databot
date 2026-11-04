@@ -1,28 +1,23 @@
-import Chat from '@/components/Chat';
+import Chat from "@/components/Chat";
 
-const Index = () => {
+export default function Index() {
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden">
-      {/* HEADER GERAL – visível sempre no topo */}
-      <header className="w-full bg-background/90 backdrop-blur-sm z-10 py-6 px-4 sm:px-6 flex flex-col items-center">
-        <h1 className="text-3xl md:text-4xl font-bold text-foreground">🤖 DataBot</h1>
-        <p className="text-gray-300 mt-1 text-center max-w-xl">
-          Faça perguntas sobre cidades e obtenha insights com análises detalhadas e dados
-          comparativos
-        </p>
+    <div className="flex h-dvh min-h-0 flex-col bg-slate-950 text-slate-100">
+      <header className="shrink-0 border-b border-slate-800 px-4 py-4 sm:px-8 sm:py-5">
+        <div className="mx-auto flex w-full max-w-5xl items-center gap-3">
+          <div aria-hidden="true" className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-700 font-bold text-white">EI</div>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight sm:text-2xl">EI DataBot</h1>
+            <p className="text-xs text-slate-400 sm:text-sm">Inteligência analítica para a educação brasileira</p>
+          </div>
+        </div>
       </header>
-
-      {/* MAIN – container do chat */}
-      <main className="flex-1 bg-background p-4 sm:p-6 overflow-hidden">
+      <main className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col p-3 sm:p-6">
         <Chat />
       </main>
-
-      {/* FOOTER */}
-      <footer className="w-full bg-background/90 backdrop-blur-sm py-4 text-center text-xs text-gray-400">
-        © 2025 DataBot • Todos os direitos reservados
+      <footer className="shrink-0 px-3 pb-3 text-center text-xs text-slate-500">
+        Base analítica educacional · Resultados sujeitos à cobertura dos dados
       </footer>
     </div>
   );
-};
-
-export default Index;
+}

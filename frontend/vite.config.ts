@@ -1,32 +1,32 @@
-import react from '@vitejs/plugin-react-swc';
-import path from 'path';
-import { defineConfig } from 'vite';
+import react from "@vitejs/plugin-react-swc";
+import path from "node:path";
+import { defineConfig, loadEnv } from "vite";
 
-export default defineConfig(() => ({
-  server: {
-    host: '0.0.0.0',
-    port: 8080,
-    allowedHosts: ['.ngrok-free.app'],
-    // força polling para HMR dentro do Docker
-    watch: {
-      usePolling: true,
-      interval: 100,
-    },
-    proxy: {
-      '/api': {
-        target: 'http://backend:8000',
-        changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/api/, '/api'),
+// Com npm --prefix ./frontend ou Docker, o diretório atual é frontend/.
+const frontendDir = process.cwd();
+const projectRoot = path.resolve(frontendDir, "..");
+
+export default defineConfig(({ mode }) => {
+  // Ler somente esta variavel do .env da raiz; nunca carregar segredos no bundle.
+  const env = loadEnv(mode, projectRoot, "API_PROXY_TARGET");
+  const apiTarget = env.API_PROXY_TARGET || "http://127.0.0.1:8000";
+
+  return {
+    plugins: [react()],
+    envDir: false,
+    server: {
+      host: "127.0.0.1",
+      port: 8080,
+      strictPort: true,
+      proxy: {
+        "/api": {
+          target: apiTarget,
+          changeOrigin: true,
+        },
       },
     },
-  },
-  plugins: [react()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
+    resolve: {
+      alias: { "@": path.resolve(frontendDir, "src") },
     },
-  },
-  optimizeDeps: {
-    include: ['echarts', 'echarts-for-react'],
-  },
-}));
+  };
+});

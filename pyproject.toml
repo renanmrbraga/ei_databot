@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools>=80", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ei_databot"
+version = "0.1.0a1"
+description = "Plataforma analítica educacional com PostgreSQL Gold e RAG"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.115,<1",
+    "google-genai>=2.34,<3",
+    "psycopg[binary]>=3.2,<4",
+    "pydantic>=2.9,<3",
+    "python-dotenv>=1,<2",
+    "uvicorn>=0.30,<1",
+]
+
+[project.optional-dependencies]
+etl = [
+    "fastexcel>=0.16",
+    "polars>=1",
+    "pyarrow>=17",
+    "requests>=2.32,<3",
+    "tqdm>=4.66,<5",
+    "urllib3>=2,<3",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.27,<1",
+    "pre-commit==4.7.0",
+    "pytest>=8,<10",
+    "ruff==0.17.3",
+    "vulture>=2.14,<3",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["chatbot*", "etl*", "postgres*", "health*", "dashboards*"]
+namespaces = true
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+extend-exclude = ["frontend", "data", "log", "audit"]
+
+[tool.pyright]
+include = ["chatbot", "etl", "dashboards", "health", "postgres"]
+exclude = ["**/__pycache__", "**/node_modules", "**/.venv"]
+pythonVersion = "3.13"
+typeCheckingMode = "strict"
+reportMissingImports = true
+reportUnusedImport = "warning"
+reportUnusedVariable = "warning"
+reportOptionalMemberAccess = true
+reportOptionalSubscript = true
+reportPrivateImportUsage = true
+strictListInference = true
+strictDictionaryInference = true
+strictParameterNoneValue = true

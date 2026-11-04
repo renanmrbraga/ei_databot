@@ -1,0 +1,25 @@
+# Contexto exclusivo de build da API: chatbot + metadados Python.
+.git/
+.env
+**/.env
+**/.env.*
+**/__pycache__/
+**/*.pyc
+**/*.bak
+*.zip
+node_modules/
+frontend/
+etl/
+dashboards/
+health/
+shared/
+postgres/
+docs/
+tests/
+data/
+audit/
+log/
+.vscode/
+.venv/
+.ruff_cache/
+.pytest_cache/

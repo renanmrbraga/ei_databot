@@ -1,0 +1,264 @@
+// schema_chatbot.dbml
+
+Project chatbot_educacao {
+  database_type: 'PostgreSQL'
+  Note: 'Schema Analítico (Gold) Completo para Power BI e Chatbot Text-to-SQL'
+}
+
+// ============================================================================
+// 1. DIMENSÕES
+// ============================================================================
+
+Table dim_calendario [headerColor: #3b82f6] {
+  id_calendario integer [pk, not null]
+  ano integer [unique, not null]
+  ano_texto varchar(10) [not null]
+  ordem_ano integer [not null]
+  data_inicio_ano date [not null]
+  data_fim_ano date [not null]
+
+  Note: 'Dimensão de tempo anual compartilhada (2018-2025)'
+}
+
+Table dim_universidade [headerColor: #eab308] {
+  id_universidade integer [pk, not null]
+  co_ies bigint [unique]
+  key_ies_norm varchar(255) [not null]
+  key_city_norm varchar(150)
+  fonte_universidade varchar(50)
+  ano_primeiro_censo integer
+  ano_ultimo_censo integer
+  anos_censo varchar(100)
+  sigla_universidade varchar(50)
+  rotulo_universidade varchar(255)
+  nome_universidade varchar(255) [not null]
+  mantenedora_universidade varchar(255)
+  tipo_universidade varchar(100)
+  organizacao_academica varchar(100)
+  categoria_administrativa varchar(100)
+  estado_universidade varchar(10)
+  cidade_universidade varchar(150)
+  distancia_universidade bigint
+  latitude double
+  longitude double
+  cor_universidade varchar(50)
+  hax_universidade varchar(10)
+
+  indexes {
+    co_ies [name: 'idx_dim_univ_co_ies']
+    (estado_universidade, cidade_universidade) [name: 'idx_dim_univ_uf_cidade']
+    sigla_universidade [name: 'idx_dim_univ_sigla']
+  }
+
+  Note: 'Dimensão de Instituições de Ensino Superior (IES)'
+}
+
+Table dim_curso [headerColor: #10b981] {
+  id_curso integer [pk, not null]
+  tipo_curso varchar(100) [not null]
+  curso_base varchar(150) [not null]
+  nome_curso varchar(255) [not null]
+  grau_curso varchar(100) [not null]
+  modalidade_curso varchar(50) [not null]
+  turno_curso varchar(50) [not null]
+  nivel_ensino varchar(50)
+  rotulo_curso varchar(255)
+  cor_curso varchar(50)
+  hax_curso varchar(10)
+  oferta_curso varchar(100)
+
+  indexes {
+    (tipo_curso, curso_base, nome_curso, grau_curso, modalidade_curso, turno_curso) [unique, name: 'uq_dim_curso_chave']
+    nome_curso [name: 'idx_dim_curso_nome']
+  }
+
+  Note: 'Dimensão de Cursos Superiores por Grau, Modalidade e Turno'
+}
+
+Table dim_escola [headerColor: #06b6d4] {
+  id_escola integer [pk, not null]
+  co_entidade bigint [unique, not null]
+  nome_escola varchar(255) [not null]
+  rede_escola varchar(50) [not null]
+  categoria_escola_privada varchar(100)
+  localizacao_escola varchar(50)
+  situacao_funcionamento varchar(50)
+  estado_escola varchar(10)
+  cidade_escola varchar(150)
+  distrito_escola varchar(150)
+  subdistrito_escola varchar(150)
+  bairro_escola varchar(150)
+  endereco_escola varchar(255)
+  numero_escola varchar(50)
+  complemento_escola varchar(150)
+  cep_escola varchar(20)
+  key_city_norm varchar(150)
+  latitude double
+  longitude double
+
+  indexes {
+    co_entidade [name: 'idx_dim_escola_co_entidade']
+    (estado_escola, cidade_escola) [name: 'idx_dim_escola_uf_cidade']
+    rede_escola [name: 'idx_dim_escola_rede']
+  }
+
+  Note: 'Dimensão de Escolas da Educação Básica (Censo Escolar)'
+}
+
+// ============================================================================
+// 2. TABELAS FATO
+// ============================================================================
+
+Table fact_ed_basica [headerColor: #f97316] {
+  id_escola integer [pk, not null]
+  id_calendario integer [not null]
+  ano integer [pk, not null]
+
+  // Visão Geral da Escola
+  matriculas_educacao_basica integer [not null, default: 0]
+  matriculas_infantil integer [not null, default: 0]
+  matriculas_fundamental_total integer [not null, default: 0]
+  matriculas_fundamental_anos_iniciais integer [not null, default: 0]
+  matriculas_fundamental_anos_finais integer [not null, default: 0]
+
+  // Funil do Ensino Médio (Captação para Faculdades)
+  matriculas_ensino_medio integer [not null, default: 0]
+  matriculas_ensino_medio_1 integer
+  matriculas_ensino_medio_2 integer
+  matriculas_ensino_medio_3 integer
+  matriculas_ensino_medio_4 integer
+  matriculas_ensino_medio_nao_seriado integer
+  matriculas_ensino_medio_integrado_tecnico integer
+
+  // Outras Modalidades
+  matriculas_profissional_tecnico integer [not null, default: 0]
+  matriculas_eja integer [not null, default: 0]
+  matriculas_educacao_especial integer [not null, default: 0]
+
+  indexes {
+    (id_escola, ano) [pk, name: 'fact_ed_basica_pk']
+    ano [name: 'idx_fact_ed_basica_ano']
+  }
+
+  Note: 'Fato de Matrículas da Educação Básica por Escola e Ano (2018-2025)'
+}
+
+Table fact_mercado [headerColor: #d946ef] {
+  id_universidade integer [pk, not null]
+  id_curso integer [pk, not null]
+  id_calendario integer [not null]
+  ano integer [pk, not null]
+  tipo_linha varchar(50) [pk, not null]
+  ano_mercado_referencia bigint
+
+  // 1. Oferta e Demanda (Vagas e Candidatos)
+  vagas_total integer [not null, default: 0]
+  vagas_novas integer [not null, default: 0]
+  vagas_remanescentes integer [not null, default: 0]
+  inscritos_total integer [not null, default: 0]
+  inscritos_vagas_novas integer [not null, default: 0]
+  inscritos_remanescentes integer [not null, default: 0]
+
+  // 2. Matrículas, Rematrículas e Conclusão
+  ingressantes integer [not null, default: 0]
+  matriculados integer [not null, default: 0]
+  rematriculados integer [not null, default: 0]
+  concluintes integer [not null, default: 0]
+
+  // 3. Evasão e Situação de Vínculo
+  trancados integer [not null, default: 0]
+  desvinculados integer [not null, default: 0]
+  transferidos integer [not null, default: 0]
+  falecidos integer [not null, default: 0]
+
+  // 4. Financiamento e Bolsas (FIES / ProUni)
+  ingressantes_fies integer [not null, default: 0]
+  matriculados_fies integer [not null, default: 0]
+  ingressantes_prouni_integral integer [not null, default: 0]
+  ingressantes_prouni_parcial integer [not null, default: 0]
+  matriculados_prouni_integral integer [not null, default: 0]
+  matriculados_prouni_parcial integer [not null, default: 0]
+
+  // 5. Referência e Preço
+  ingressantes_enade_referencia integer
+  preco double
+
+  // 6. Métricas ENADE
+  enade_concluintes_inscritos_qtd bigint
+  enade_concluintes_participantes_qtd bigint
+  enade_nota_bruta_fg double
+  enade_nota_padronizada_fg double
+  enade_nota_bruta_ce double
+  enade_nota_padronizada_ce double
+  enade_conceito_continuo double
+  enade_conceito_faixa integer
+  enade_concluintes_acima_padrao_qtd bigint
+  enade_percentual_acima_padrao double
+
+  // 7. Métricas IDD
+  idd_concluintes_com_enem_qtd bigint
+  idd_proporcao_concluintes_com_enem double
+  idd_nota_bruta double
+  idd_continuo double
+  idd_faixa integer
+
+  // 8. Métricas CPC
+  cpc_nota_bruta_organizacao_didatico_pedagogica double
+  cpc_nota_padronizada_organizacao_didatico_pedagogica double
+  cpc_nota_bruta_infraestrutura double
+  cpc_nota_padronizada_infraestrutura double
+  cpc_nota_bruta_oportunidade_formacao double
+  cpc_nota_padronizada_oportunidade_formacao double
+  cpc_nota_bruta_mestres double
+  cpc_nota_padronizada_mestres double
+  cpc_nota_bruta_doutores double
+  cpc_nota_padronizada_doutores double
+  cpc_nota_bruta_regime_trabalho double
+  cpc_nota_padronizada_regime_trabalho double
+  cpc_continuo double
+  cpc_faixa integer
+
+  indexes {
+    (id_universidade, id_curso, ano, tipo_linha) [pk, name: 'fact_mercado_pk']
+    ano [name: 'idx_fact_mercado_ano']
+    id_curso [name: 'idx_fact_mercado_curso']
+  }
+
+  Note: 'Fato Completa de Mercado Universitário (Funil de Vagas/Matrículas/Evasão + ENADE + IDD + CPC)'
+}
+
+Table fact_igc [headerColor: #8b5cf6] {
+  id_universidade integer [pk, not null]
+  id_calendario integer [not null]
+  ano integer [pk, not null]
+  igc_cursos_cpc_trienio_qtd integer
+  igc_alfa_graduacao double
+  igc_conceito_medio_graduacao double
+  igc_beta_mestrado double
+  igc_conceito_medio_mestrado double
+  igc_gama_doutorado double
+  igc_conceito_medio_doutorado double
+  igc_continuo double
+  igc_faixa integer
+
+  indexes {
+    (id_universidade, ano) [pk, name: 'fact_igc_pk']
+    ano [name: 'idx_fact_igc_ano']
+  }
+
+  Note: 'Fato Institucional IGC por Universidade e Ano'
+}
+
+// ============================================================================
+// 3. RELACIONAMENTOS
+// ============================================================================
+
+Ref: fact_ed_basica.id_escola > dim_escola.id_escola
+Ref: fact_ed_basica.id_calendario > dim_calendario.id_calendario
+
+Ref: fact_mercado.id_universidade > dim_universidade.id_universidade
+Ref: fact_mercado.id_curso > dim_curso.id_curso
+Ref: fact_mercado.id_calendario > dim_calendario.id_calendario
+
+Ref: fact_igc.id_universidade > dim_universidade.id_universidade
+Ref: fact_igc.id_calendario > dim_calendario.id_calendario

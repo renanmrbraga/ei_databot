@@ -1,45 +1,56 @@
-# =====================
-# Python
-# =====================
+
+# ==========================================
+# PYTHON
+# ==========================================
 __pycache__/
 *.py[cod]
-*.pyc
-*.pyo
 *$py.class
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.pyright/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
 
-# =====================
-# Ambientes virtuais
-# =====================
+# ==========================================
+# AMBIENTES E SEGREDOS
+# ==========================================
 .env
 .env.*
+!.env.example
+!.env.*.example
 .venv/
 venv/
 env/
 ENV/
 env.bak/
 .venv.bak/
-.env.runtime
 
-# =====================
-# Cache / Build
-# =====================
+# ==========================================
+# CACHE E ARQUIVOS TEMPORÁRIOS
+# ==========================================
 .cache/
 .cache_db/
-.cache/
 cache/
+audit/
+*.tmp
+*.temp
+*.bak
+*.pid
 *.log
 *.logs
-*.pid
-*.sqlite3
-*.db
-.mypy_cache
 
-# =====================
-# IDEs e sistema
-# =====================
+# ==========================================
+# IDE E SISTEMA
+# ==========================================
 .vscode/
-*.code-workspace
 .idea/
+*.code-workspace
 *.suo
 *.ntvs*
 *.njsproj
@@ -48,54 +59,57 @@ cache/
 .DS_Store
 Thumbs.db
 
-# =====================
-# Node (frontend)
-# =====================
+# ==========================================
+# FRONTEND
+# ==========================================
 node_modules/
 dist/
 build/
 dist-ssr/
 .vite/
-.bun.lockb
-
-# =====================
-# Docker e dependências pesadas
-# =====================
-*.tgz
-*.tar.gz
-
-# =====================
-# Dados e outputs locais
-# =====================
-data/
-*/data/
-*/*/data/
-uploads_temp/
-*.npz
-*.csv
-*.xls*
-*.parquet
-*.feather
-*.pdf
-
-# =====================
-# ESlint / Prettier
-# =====================
+.next/
 .eslintcache
 .prettiercache
 
-# =====================
-# Logs específicos
-# =====================
-logs/
+# ==========================================
+# LOGS
+# ==========================================
 log/
+logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# =====================
-# Prettier Config Cache
-# =====================
-.prettiercache
+# ==========================================
+# DADOS GERADOS
+# ==========================================
+/data/
+uploads_temp/
+
+*.csv
+*.tsv
+*.parquet
+*.feather
+*.arrow
+*.npz
+
+# ==========================================
+# BANCOS LOCAIS
+# ==========================================
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+*.duckdb
+*.duckdb.wal
+
+# ==========================================
+# EXPORTAÇÕES E ARQUIVOS PESADOS
+# ==========================================
+*.xls
+*.xlsx
+*.xlsm
+*.tgz
+*.tar.gz
