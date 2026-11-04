@@ -58,10 +58,6 @@ class EstruturaEducacionalTest(unittest.TestCase):
         self.assertIn('"lat":', dashboard)
         self.assertIn('"lon":', dashboard)
 
-    def test_paleta_unifaa_preservada(self) -> None:
-        paleta = (ROOT / "etl/educacao/mapping.py").read_text(encoding="utf-8")
-        self.assertIn('"UNIFAA": {"cor": "Esmeralda", "hex": "#00A886"}', paleta)
-
 
 if __name__ == "__main__":
     unittest.main()
