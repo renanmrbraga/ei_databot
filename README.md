@@ -2,9 +2,9 @@
 
 **EI DataBot** — plataforma experimental de engenharia de dados e consultas analíticas sobre a educação brasileira.
 
-> **Marco proposto:** Alpha 1 (`v0.1.0-alpha.1`) · **Referência:** 03/11/2026 · **Estado:** desenvolvimento local, não preparado para exposição pública.
+> **Estágio:** Alpha 1 (`v0.1.0-alpha.1`) · **Referência:** 03/11/2026 · **Estado:** desenvolvimento local, não preparado para exposição pública.
 >
-> Esta versão marca a primeira integração funcional após a refatoração estrutural. Não significa que todos os indicadores, os testes funcionais, a segurança multiusuário ou os dashboards estejam concluídos.
+> Esta versão inclui a primeira integração funcional após a refatoração estrutural. A cobertura de indicadores, os testes funcionais, os controles de acesso e os dashboards continuam em desenvolvimento.
 
 O projeto integra dados públicos de educação em um pipeline **Raw → Bronze → Silver → Gold**, com processamento em **Python/Polars**, armazenamento em **Parquet** e publicação de dados analíticos no **PostgreSQL**. Um chatbot em **React/TypeScript** consulta uma API **FastAPI** que interpreta perguntas com **Gemini**, executa apenas consultas SQL previamente autorizadas e explica os resultados obtidos no banco. As regras documentais são recuperadas por **RAG com pgvector**.
 
@@ -12,11 +12,11 @@ O projeto integra dados públicos de educação em um pipeline **Raw → Bronze 
 
 ## O que está disponível na Alpha 1
 
-| Componente                       | Estado verificado ou conhecido                                                                                                                 |
+| Componente                       | Estado atual                                                                                                                                   |
 | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | ETL Medallion (`educacao`)       | 27 etapas concluídas com sucesso na execução integral validada durante a refatoração.                                                          |
 | PostgreSQL Gold                  | Cinco dimensões e cinco tabelas fato, totalizando 2.702.972 registros publicados e validados.                                                  |
-| RAG documental                   | Cinco documentos elegíveis e 151 fragmentos ativos na última conferência; sincronização incremental sem pendências no último `--dry-run`.      |
+| RAG documental                   | Recuperação de contexto a partir de cinco documentos, com fragmentação, embeddings e sincronização incremental.                                |
 | Backend FastAPI                  | Chat, interpretação estruturada Gemini, RAG auxiliar, SQL parametrizado e histórico PostgreSQL/JSONB implementados.                            |
 | Indicadores liberados no chatbot | `CAT-EB-001` (matrículas da educação básica) e `CAT-ES-023` (matrículas da educação superior).                                                 |
 | Frontend React                   | Consulta real ao backend, exibição de fontes, avisos e dados estruturados, continuidade de contexto, navegação e exclusão de conversas locais. |
@@ -99,10 +99,10 @@ O conteúdo canônico das regras está em `docs/`. **Somente os cinco primeiros 
 A sincronização é conduzida por `postgres/sync_rag.py` e utiliza hashes de documentos e fragmentos, cache persistente de embeddings e controle de versões. O modelo documental é `gemini-embedding-001` com vetores de **768 dimensões**. Fragmentos inalterados são reutilizados; alterações geram apenas o trabalho incremental necessário.
 
 ```powershell
-# Inspeção sem escrita nem chamada para gerar embeddings
+# Consultar alterações pendentes sem modificar o banco ou gerar embeddings
 python -m postgres.sync_rag --dry-run
 
-# Executar somente quando houver mudanças documentais aprovadas para sincronização
+# Executar a sincronização incremental do RAG
 python -m postgres.sync_rag
 ```
 
@@ -160,7 +160,7 @@ python -m uvicorn chatbot.chatbot:app --host 127.0.0.1 --port 8000
 Verifique a disponibilidade HTTP:
 
 ```powershell
-Invoke-RestMethod http://127.0.0.1:8000/health
+python -m unittest discover -s tests -p 'test_*.py' -q
 ```
 
 `/health` verifica a disponibilidade da aplicação HTTP, não a conexão com o banco ou a API Gemini.
@@ -224,9 +224,13 @@ python -m postgres.validate_gold --offline
 python -m postgres.sync_rag --dry-run
 ```
 
-Os avisos de revisão humana apresentados por `validate_gold --offline` são esperados enquanto os cinco documentos não forem formalmente aprovados. Um aviso de depreciação relacionado a Starlette/TestClient também foi observado na suíte Python; ele ainda precisa ser investigado em uma revisão de dependências.
+A validação offline apresenta avisos para documentos com aprovação pendente.
 
-Para uma auditoria com banco, avalie executar `python -m postgres.validate_gold --deep` após confirmar que o ambiente está pronto e os custos operacionais são aceitáveis.
+Para executar a validação aprofundada com acesso ao PostgreSQL:
+
+```powershell
+python -m postgres.validate_gold --deep
+```
 
 ### Frontend
 
@@ -236,7 +240,9 @@ npm --prefix .\frontend audit --omit=dev
 npm --prefix .\frontend audit
 ```
 
-`check` executa TypeScript, ESLint, testes JavaScript e build Vite. Na última instalação reportada, o npm mostrou **12 vulnerabilidades moderadas no conjunto instalado**. A distribuição entre produção e desenvolvimento ainda precisa de auditoria específica; **não use `npm audit fix --force` sem avaliar o impacto das alterações**.
+O comando `check` executa TypeScript, ESLint, testes JavaScript e build Vite. O comando `npm audit --omit=dev` verifica as dependências de produção, enquanto `npm audit` inclui também as dependências de desenvolvimento.
+
+Atualizações de dependências devem considerar a compatibilidade com o projeto. O uso de `npm audit fix --force` pode introduzir alterações incompatíveis.
 
 ## Estrutura principal do repositório
 
@@ -259,30 +265,15 @@ ei_databot/
 └── README.md
 ```
 
-A existência e o conteúdo definitivo de `.gitignore`, `docker-compose.yml`, `.env.example`, documentação e scripts operacionais devem ser conferidos na auditoria pré-commit. Arquivos temporários, caches, bancos locais, dumps, relatórios de auditoria, backups e credenciais **não** devem ser adicionados ao repositório.
-
 ## Limitações e pendências da Alpha 1
 
 - Autenticação, autorização por usuário, isolamento de sessões, rate limiting e política de retenção ainda não foram implementados ou validados para uso público.
 - O PostgreSQL de desenvolvimento ainda requer revisão de privilégios mínimos e credenciais de serviço.
 - Falta ampliar os testes funcionais, principalmente séries anuais, educação superior/EAD, recortes inválidos, ausência de dados, isolamento de sessões e conferência independente do SQL Gold.
 - Não há comparação direta de municípios nem geração de gráficos e arquivos pelo chatbot.
-- A documentação de negócio permanece com revisão humana pendente; não alterar esses status automaticamente.
-- Necessária auditoria dos arquivos versionados, de possíveis segredos no Git, das dependências npm e dos arquivos Markdown antes do marco Alpha 1.
+- As regras de negócio documentadas ainda têm aprovação pendente.
 - A interface funciona localmente, mas não foi submetida a testes de segurança nem preparada para implantação pública.
 - A integração com Gemini depende de um serviço externo, sujeito a cotas de utilização, limites de requisições, latência variável e indisponibilidade. O uso de um plano gratuito não garante disponibilidade contínua do chatbot.
-
-## Segurança e política de contribuição
-
-Antes de qualquer `git add`, commit, tag ou publicação:
-
-1. Inspecione o `git status`, os arquivos não rastreados e o diff do que será incluído no commit.
-2. Confirme que `.env`, backups, dumps, datasets locais, tokens, chaves privadas, logs e artefatos de build não estão versionados.
-3. Verifique **também o histórico do Git**: remover um segredo do arquivo atual não o remove de commits anteriores. Credenciais expostas devem ser revogadas/rotacionadas e o histórico tratado antes da publicação.
-4. Execute os testes, linters, validações documentais e auditorias de dependências.
-5. Confirme que os scripts de ambiente e as rotas HTTP não expõem dados sensíveis ou sessões a usuários não autorizados.
-
-O projeto usa fontes públicas e métodos analíticos reproduzíveis, mas diferenças de cobertura, unidade e metodologia precisam ser consideradas antes de interpretar resultados. Nenhuma resposta do modelo substitui os microdados oficiais ou a validação técnica dos indicadores.
 
 ## Licença
 
