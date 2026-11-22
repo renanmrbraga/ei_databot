@@ -54,12 +54,15 @@ def synchronize(dataset: str, batch_size: int = 20_000) -> None:
             count = load_table(
                 cur, folder / f"{name}.parquet", stage, name, list(schemas[name]), batch_size
             )
+            # Validate the number of rows loaded into the staging table.
             cur.execute(
-                sql.SQL("SELECT count(*) FROM {}.{}").format(
-                    sql.Identifier(stage), sql.Identifier(name)
+                sql.SQL("SELECT COUNT(*) AS total FROM {}.{}").format(
+                    sql.Identifier(stage),
+                    sql.Identifier(name),
                 )
             )
-            loaded = cur.fetchone()[0]
+
+            loaded = cur.fetchone()["total"]
             if loaded != count:
                 raise RuntimeError(f"Contagem divergente em {name}: {count} != {loaded}")
             total += count

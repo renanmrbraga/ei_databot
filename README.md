@@ -1,280 +1,236 @@
 # EI DataBot
 
-**EI DataBot** — plataforma experimental de engenharia de dados e consultas analíticas sobre a educação brasileira.
+**[View Project](https://renanmrbraga.vercel.app/projects/ei-databot?utm_source=github&utm_medium=social&utm_campaign=portfolio&utm_content=ei_databot)**
 
-> **Estágio:** Alpha 1 (`v0.1.0-alpha.1`) · **Referência:** 03/11/2026 · **Estado:** desenvolvimento local, não preparado para exposição pública.
->
-> Esta versão inclui a primeira integração funcional após a refatoração estrutural. A cobertura de indicadores, os testes funcionais, os controles de acesso e os dashboards continuam em desenvolvimento.
+**EI DataBot** is an experimental data engineering and analytics platform focused on Brazilian education. It brings together public datasets, interactive dashboards, and an AI-assisted chatbot for exploring educational indicators.
 
-O projeto integra dados públicos de educação em um pipeline **Raw → Bronze → Silver → Gold**, com processamento em **Python/Polars**, armazenamento em **Parquet** e publicação de dados analíticos no **PostgreSQL**. Um chatbot em **React/TypeScript** consulta uma API **FastAPI** que interpreta perguntas com **Gemini**, executa apenas consultas SQL previamente autorizadas e explica os resultados obtidos no banco. As regras documentais são recuperadas por **RAG com pgvector**.
+**Version:** `v0.1.1` · **Stage:** Alpha · **Environment:** Local development
 
-**Integração:** o chatbot e os dashboards compartilham a camada Gold produzida pelo ETL. O chatbot consulta as tabelas analíticas publicadas no PostgreSQL, enquanto os dashboards são gerados a partir dos arquivos Parquet Gold. O chatbot não consulta diretamente os dashboards.
+> **Development status:** The platform is not ready for public deployment. Authentication, user-level access controls, and broader functional testing are still in development.
 
-## O que está disponível na Alpha 1
+## About the Project
 
-| Componente                       | Estado atual                                                                                                                                   |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| ETL Medallion (`educacao`)       | 27 etapas concluídas com sucesso na execução integral validada durante a refatoração.                                                          |
-| PostgreSQL Gold                  | Cinco dimensões e cinco tabelas fato, totalizando 2.702.972 registros publicados e validados.                                                  |
-| RAG documental                   | Recuperação de contexto a partir de cinco documentos, com fragmentação, embeddings e sincronização incremental.                                |
-| Backend FastAPI                  | Chat, interpretação estruturada Gemini, RAG auxiliar, SQL parametrizado e histórico PostgreSQL/JSONB implementados.                            |
-| Indicadores liberados no chatbot | `CAT-EB-001` (matrículas da educação básica) e `CAT-ES-023` (matrículas da educação superior).                                                 |
-| Frontend React                   | Consulta real ao backend, exibição de fontes, avisos e dados estruturados, continuidade de contexto, navegação e exclusão de conversas locais. |
-| Histórico                        | Mensagens persistidas em `app.messages`; lista de sessões conhecidas pelo navegador, com restauração pelo UUID.                                |
-| Dashboard                        | Criado de acordo com as regras de negócio e dados do ETL.                                                                                      |
-| Segurança de acesso              | **Não concluída:** ainda não há autenticação/autorização de usuários nem isolamento de sessões por identidade.                                 |
+EI DataBot processes public education data from sources such as INEP and IBGE/SIDRA through a **Raw → Bronze → Silver → Gold** pipeline built with Python and Polars.
 
-## Arquitetura
+The processed data is stored in Parquet and published to PostgreSQL for analytical queries.
+
+The platform also includes a React/TypeScript chatbot connected to FastAPI. Gemini interprets questions, while Python validates requests and runs predefined, parameterized SQL queries. RAG with pgvector provides supporting context from business documentation.
+
+Dashboards and the chatbot share the same Gold data, but operate independently:
+
+- **Dashboards:** use processed Gold Parquet files.
+- **Chatbot:** queries analytical tables published in PostgreSQL.
+
+## Current Features
+
+The following results were validated during the Alpha 1 development cycle, on November 3, 2026.
+
+| Component       | Implementation                                                        |
+| --------------- | --------------------------------------------------------------------- |
+| Data pipeline   | 27 ETL steps across Bronze, Silver, Gold, and dashboard generation    |
+| PostgreSQL Gold | 5 dimensions, 5 fact tables, and 2,702,972 published records          |
+| RAG             | Incremental indexing and retrieval from 5 business documents          |
+| FastAPI         | Analytical queries, Gemini integration, RAG, and conversation history |
+| React frontend  | Chat interface, conversation management, sources, and warnings        |
+| Dashboards      | Educational visualizations generated from Gold data                   |
+| Data quality    | Pipeline and database validations completed during Alpha 1            |
+
+These figures describe a previously validated dataset, not live or continuously updated results.
+
+## Technologies
+
+| Area             | Technologies                                       |
+| ---------------- | -------------------------------------------------- |
+| Data engineering | Python, Polars, PyArrow, Parquet                   |
+| Database         | PostgreSQL, JSONB, pgvector                        |
+| Backend          | FastAPI, Pydantic, SQL                             |
+| AI & RAG         | Gemini, embeddings, retrieval-augmented generation |
+| Frontend         | React, TypeScript, Vite, Tailwind CSS              |
+| Infrastructure   | Docker, Docker Compose                             |
+| Testing          | Ruff, unittest, TypeScript, ESLint                 |
+
+## Architecture
 
 ```mermaid
 flowchart TD
-    SOURCES[Fontes públicas: INEP e IBGE/SIDRA] --> RAW[Raw]
-    RAW --> BRONZE[Bronze]
-    BRONZE --> SILVER[Silver]
-    SILVER --> GOLD[Gold em Parquet]
+    A[INEP and IBGE/SIDRA] --> B[Raw]
+    B --> C[Bronze]
+    C --> D[Silver]
+    D --> E[Gold - Parquet]
 
-    GOLD --> SYNC[Publicação PostgreSQL]
-    SYNC --> PG[(PostgreSQL: gold)]
-    GOLD --> DASH[Dashboards independentes]
+    E --> F[Dashboards]
+    E --> G[(PostgreSQL - gold)]
 
-    DOCS[Cinco documentos Markdown] --> ING[Sincronização RAG incremental]
-    ING --> VEC[(PostgreSQL: rag / pgvector)]
+    H[Business documentation] --> I[RAG indexing]
+    I --> J[(PostgreSQL - rag / pgvector)]
 
-    UI[React / Vite] --> API[FastAPI]
-    API --> CHAT[Orquestração do chat]
-    CHAT --> HIST[(PostgreSQL: app / JSONB)]
-    CHAT --> RET[Busca de contexto RAG]
-    RET --> VEC
-    CHAT --> LLM[Gemini: interpretar e responder]
-    CHAT --> SQL[SQL autorizado e parametrizado]
-    SQL --> PG
+    K[React frontend] --> L[FastAPI]
+    L --> M[Gemini]
+    L --> N[Validated SQL queries]
+    N --> G
+    L --> J
+    L --> O[(PostgreSQL - app / JSONB)]
 ```
 
-### Responsabilidades dos schemas
+### Database Schemas
 
-| Schema | Responsabilidade                                                                                   |
-| ------ | -------------------------------------------------------------------------------------------------- |
-| `gold` | Fatos, dimensões e dados analíticos provenientes do ETL.                                           |
-| `rag`  | Documentos, fragmentos, embeddings, versões, cache e catálogo técnico do Gold.                     |
-| `app`  | Sessões UUID e mensagens JSONB, com exclusão em cascata das mensagens quando uma sessão é apagada. |
+| Schema | Purpose                                              |
+| ------ | ---------------------------------------------------- |
+| `gold` | Analytical facts and dimensions produced by the ETL  |
+| `rag`  | Documents, embeddings, metadata, and retrieval cache |
+| `app`  | Conversation sessions and message history            |
 
-A LLM **não gera SQL livre** nem é a fonte dos números. O Python valida indicador, período, município, UF e operação antes de executar consultas parametrizadas. O RAG fornece contexto metodológico, sem autorizar novas operações ou indicadores.
+The chatbot does not generate unrestricted SQL. Python validates the requested indicator, period, location, and operation before executing an authorized query.
 
-## Escopo analítico do chatbot
+Gemini helps interpret questions and explain results. **The database remains the source of numerical data.**
 
-| ID           | Indicador                       | Período previsto no contrato | Operações                   |
-| ------------ | ------------------------------- | ---------------------------- | --------------------------- |
-| `CAT-EB-001` | Matrículas da educação básica   | 2018–2025                    | `SOMA_ANUAL`, `SERIE_ANUAL` |
-| `CAT-ES-023` | Matrículas da educação superior | 2018–2024                    | `SOMA_ANUAL`, `SERIE_ANUAL` |
+## Analytical Scope
 
-**Limitações atuais:** o chatbot não compara dois municípios numa única solicitação, não habilita automaticamente todos os indicadores documentados e não soma matrículas de anos distintos como se fossem ocorrências acumuláveis. A consulta municipal requer UF para desambiguar o município. As restrições geográficas da modalidade EAD devem ser respeitadas nas análises da educação superior. Pedidos fora do contrato são recusados de forma controlada.
+The current chatbot supports two indicators:
 
-As respostas podem incluir `resposta`, `fontes`, `cidade`, `uf`, `tema`, `dados_brutos` e `avisos`. A apresentação dos avisos é separada do texto explicativo para evitar notas administrativas desnecessárias. Isso não substitui a revisão metodológica dos resultados.
+| ID           | Indicator                   | Period    | Operations                  |
+| ------------ | --------------------------- | --------- | --------------------------- |
+| `CAT-EB-001` | Basic education enrollment  | 2018–2025 | `SOMA_ANUAL`, `SERIE_ANUAL` |
+| `CAT-ES-023` | Higher education enrollment | 2018–2024 | `SOMA_ANUAL`, `SERIE_ANUAL` |
 
-### Distâncias geográficas
+Queries can use supported periods and geographic filters. A state (UF) is required to identify municipalities unambiguously.
 
-O ETL educacional calcula a distância geográfica em quilômetros entre os municípios e uma localidade de referência configurável em `etl/educacao/config.py`, utilizando as variáveis `CIDADE_REFERENCIA` e `UF_REFERENCIA`.
+Some operations remain outside the current scope, including direct comparisons between municipalities. Higher education queries must also respect the geographic limitations of distance learning (EAD) data.
 
-A dimensão Gold `dim_localidade` armazena esse resultado em `distancia_referencia_km`. O cálculo utiliza a fórmula de Haversine, representando a distância aproximada em linha reta entre coordenadas geográficas, e não a distância rodoviária.
+Requests outside the supported analytical contract are rejected rather than converted into unrestricted SQL.
 
-Na configuração atualmente validada, a referência é Rio de Janeiro/RJ. Registros sem coordenadas ou sem localização municipal aplicável podem apresentar distância nula.
+### Geographic Distance
 
-O dashboard já recebe os dados de distância, mas o filtro interativo por distância geográfica está reservado para uma versão posterior à Alpha 1.
+The educational ETL calculates approximate straight-line distances between municipalities using the Haversine formula.
 
-## Documentação de negócio e operacional
+The reference location is configurable through `CIDADE_REFERENCIA` and `UF_REFERENCIA` in `etl/educacao/config.py`.
 
-O conteúdo canônico das regras está em `docs/`. **Somente os cinco primeiros documentos** participam da indexação RAG. Sincronizar o RAG não significa aprovar uma regra.
+Distances are stored in `gold.dim_localidade`, under `distancia_referencia_km`. The previously validated configuration uses Rio de Janeiro/RJ as its reference.
 
-| Documento                                      | Assunto                                                                  |
-| ---------------------------------------------- | ------------------------------------------------------------------------ |
-| [Educação Superior](docs/educacao_superior.md) | Fontes, granularidade, matrículas, EAD e restrições territoriais.        |
-| [Educação Básica](docs/educacao_basica.md)     | Censo Escolar, escolas, matrículas e limites de interpretação.           |
-| [Avaliações](docs/avaliacoes.md)               | ENADE, CPC, IDD, IGC e regras metodológicas.                             |
-| [Indicadores](docs/indicadores.md)             | Identificadores, métricas, operações e agregações autorizadas.           |
-| [Regras Gerais](docs/regras_gerais.md)         | Contratos transversais, granularidade, rastreabilidade e uso do RAG.     |
-| [Comandos](docs/comandos.md)                   | Guia operacional de ETL, PostgreSQL, validações e RAG; **não indexado**. |
+The dashboard receives these values, but an interactive distance filter is planned for a later version.
 
-### RAG incremental
+## RAG & Business Rules
 
-A sincronização é conduzida por `postgres/sync_rag.py` e utiliza hashes de documentos e fragmentos, cache persistente de embeddings e controle de versões. O modelo documental é `gemini-embedding-001` com vetores de **768 dimensões**. Fragmentos inalterados são reutilizados; alterações geram apenas o trabalho incremental necessário.
+Business documentation is stored in `docs/`. Five documents are indexed for retrieval:
+
+| Document                                      | Content                                                    |
+| --------------------------------------------- | ---------------------------------------------------------- |
+| [Higher Education](docs/educacao_superior.md) | Enrollment, EAD, data sources, and geographic limitations  |
+| [Basic Education](docs/educacao_basica.md)    | Schools, enrollment, and census methodology                |
+| [Educational Assessments](docs/avaliacoes.md) | ENADE, CPC, IDD, IGC, and methodological rules             |
+| [Indicators](docs/indicadores.md)             | Metrics, identifiers, and authorized operations            |
+| [General Rules](docs/regras_gerais.md)        | Data granularity, traceability, and analytical constraints |
+
+These documents remain in Portuguese to preserve the original business terminology.
+
+The RAG pipeline uses `gemini-embedding-001` with 768-dimensional vectors. It supports incremental synchronization, reusing unchanged embeddings when possible.
+
+Document indexing does not imply business-rule approval. Documents under review are excluded from normal retrieval unless explicitly enabled for testing.
+
+RAG provides methodological context but cannot authorize additional SQL operations.
+
+## Chatbot & Conversation History
+
+The frontend supports analytical questions, follow-up messages, conversation switching, and deletion.
+
+Messages are stored in PostgreSQL under the `app` schema. The browser maintains a local list of up to 50 known sessions, which can be restored through their UUIDs.
+
+Previous messages, sources, and warnings can be retrieved. However, the current implementation does not reconstruct the original raw analytical data for older responses.
+
+**Security limitation:** UUIDs identify sessions but do not provide authentication or authorization. The chatbot must remain in a controlled development environment until proper access controls are implemented.
+
+## Running Locally
+
+### Requirements
+
+- Python 3.13
+- Node.js and npm
+- Docker and Docker Compose
+- PostgreSQL with pgvector
+- Gemini API credentials
+
+Clone the repository:
 
 ```powershell
-# Consultar alterações pendentes sem modificar o banco ou gerar embeddings
-python -m postgres.sync_rag --dry-run
-
-# Executar a sincronização incremental do RAG
-python -m postgres.sync_rag
+git clone https://github.com/renanmrbraga/ei_databot.git
+Set-Location ei_databot
 ```
 
-Documentos em revisão só entram na recuperação de teste quando habilitado explicitamente `RAG_INCLUDE_DRAFTS=true` ou a opção equivalente `--include-drafts` na CLI. O RAG não concede privilégios SQL nem aprova documentos automaticamente.
-
-## Requisitos de desenvolvimento
-
-- Windows ou Linux, ou outro ambiente compatível com Python e Docker.
-- Python 3.13 e dependências do `pyproject.toml`.
-- Node.js e npm compatíveis com as dependências declaradas em `frontend/package.json`.
-- Docker Compose com PostgreSQL e a extensão pgvector, conforme a configuração local do projeto.
-- Credenciais de desenvolvimento para PostgreSQL e Gemini, fornecidas por variáveis de ambiente locais **não versionadas**.
-
-A configuração do backend é carregada de `.env` na raiz do projeto. Consulte os exemplos de ambiente presentes no repositório e configure apenas os valores necessários, como `POSTGRES_*`, `LLM_API_KEY`, `LLM_MODEL` e, para testes com documentação em revisão, `RAG_INCLUDE_DRAFTS`.
-
-## Execução local
-
-Execute os comandos a partir da raiz do repositório, salvo indicação diferente.
-
-### 1. Instalar dependências Python
+Install Python dependencies:
 
 ```powershell
 python -m pip install -e ".[etl]"
-python -m pip check
 ```
 
-### 2. Iniciar PostgreSQL
+Configure the required environment variables using `.env.example` as a reference. Keep passwords and API keys in a local, untracked `.env` file.
+
+Before running the application, initialize PostgreSQL and the required schemas following the operational guide.
+
+To inspect the data pipeline without executing it:
 
 ```powershell
-docker compose up -d postgres
-```
-
-Os schemas e migrações devem existir antes da operação da API. Para uma instalação nova, aplique os scripts de criação necessários na ordem documentada em [Comandos](docs/comandos.md); **não reaplique scripts indiscriminadamente a um banco já populado**.
-
-### 3. ETL e sincronização analítica (quando necessário)
-
-```powershell
-# Visualizar as etapas sem executar
 python .\main.py --plan
-
-# Executar o pipeline completo somente quando necessário
-python .\main.py --run
 ```
 
-**Atenção:** `--run` executa o ETL, publica as tabelas Gold, sincroniza o catálogo e valida os resultados. Pode sobrescrever arquivos processados e substituir tabelas analíticas existentes. Não é necessário executar novamente `postgres.sync` ou `postgres.sync_catalog` após uma execução completa bem-sucedida. Consulte [Comandos](docs/comandos.md) para executar etapas individuais.
+The complete setup, database initialization, ETL commands, Docker procedures, and validation steps are documented in **[COMMANDS.md](COMMANDS.md)**.
 
-### 4. Backend FastAPI
+> Running the ETL can overwrite processed files and replace published Gold tables. Review the operational guide and existing data before executing a full pipeline.
 
-Em um terminal com o ambiente Python ativo:
-
-```powershell
-python -m uvicorn chatbot.chatbot:app --host 127.0.0.1 --port 8000
-```
-
-Verifique a disponibilidade HTTP:
-
-```powershell
-python -m unittest discover -s tests -p 'test_*.py' -q
-```
-
-`/health` verifica a disponibilidade da aplicação HTTP, não a conexão com o banco ou a API Gemini.
-
-### 5. Frontend React/Vite
-
-Em outro terminal:
-
-```powershell
-npm --prefix .\frontend ci
-npm --prefix .\frontend run dev
-```
-
-### 6. Testar uma consulta
-
-Na interface, pergunte:
-
-> Quantas matrículas da educação básica houve em Volta Redonda/RJ em 2025?
-
-Depois, na mesma conversa:
-
-> E em 2024?
-
-A segunda pergunta deve preservar o indicador e a localidade. O resultado observado anteriormente foi de 56.498 matrículas em 2025 e 57.432 em 2024. São verificações de integração anteriores, não garantia de atualização dos dados em tempo real.
-
-Também é possível consultar diretamente a API:
-
-```powershell
-$corpo = @{
-    pergunta = 'Quantas matrículas da educação básica houve em Volta Redonda/RJ em 2025?'
-    session_id = [guid]::NewGuid().ToString()
-} | ConvertTo-Json
-
-Invoke-RestMethod `
-    -Uri 'http://127.0.0.1:8000/api/chat' `
-    -Method Post `
-    -ContentType 'application/json; charset=utf-8' `
-    -Body ([System.Text.Encoding]::UTF8.GetBytes($corpo))
-```
-
-## Sessões e histórico
-
-- Cada nova conversa recebe um UUID utilizado para identificar a sessão no backend.
-- O histórico canônico das mensagens é persistido no PostgreSQL, no schema `app`.
-- O frontend mantém uma lista local de sessões conhecidas pelo navegador, limitada a 50 entradas.
-- Ao selecionar uma conversa anterior, o frontend recupera as mensagens pela API.
-- É possível iniciar, alternar e excluir conversas. A exclusão confirmada pelo backend também remove as mensagens associadas.
-- O histórico recuperado preserva mensagens, fontes e avisos, mas não reconstrói os dados analíticos brutos de respostas antigas.
-- Não existe autenticação ou autorização por usuário nesta versão. O UUID não deve ser considerado um mecanismo de segurança.
-- A aplicação destina-se ao desenvolvimento local e não deve ser exposta publicamente sem controles de acesso.
-
-## Qualidade e verificações
-
-### Python
-
-```powershell
-python -m ruff check chatbot etl dashboards health postgres tests main.py
-python -m unittest discover -s tests -p 'test_*.py' -q
-python -m pip check
-python -m postgres.validate_gold --offline
-python -m postgres.sync_rag --dry-run
-```
-
-A validação offline apresenta avisos para documentos com aprovação pendente.
-
-Para executar a validação aprofundada com acesso ao PostgreSQL:
-
-```powershell
-python -m postgres.validate_gold --deep
-```
-
-### Frontend
-
-```powershell
-npm --prefix .\frontend run check
-npm --prefix .\frontend audit --omit=dev
-npm --prefix .\frontend audit
-```
-
-O comando `check` executa TypeScript, ESLint, testes JavaScript e build Vite. O comando `npm audit --omit=dev` verifica as dependências de produção, enquanto `npm audit` inclui também as dependências de desenvolvimento.
-
-Atualizações de dependências devem considerar a compatibilidade com o projeto. O uso de `npm audit fix --force` pode introduzir alterações incompatíveis.
-
-## Estrutura principal do repositório
+## Project Structure
 
 ```text
 ei_databot/
-├── chatbot/                # API FastAPI e serviços conversacionais
-├── dashboards/             # Dashboards gerados a partir do Gold
-├── data/                   # Dados locais não versionados
-├── docs/                   # Regras de negócio e guia operacional
-├── etl/                    # Pipeline Raw/Bronze/Silver/Gold
-├── frontend/               # React, TypeScript e Vite
-├── health/                 # Verificações de integridade
-├── postgres/               # Gold, RAG, catálogo e histórico JSONB
-├── tests/                  # Testes Python
-├── main.py                 # Orquestrador principal do ETL
-├── docker-compose.yml      # Infraestrutura local
-├── pyproject.toml          # Dependências e configuração Python
-├── .env.example            # Exemplo de configuração sem credenciais
+├── chatbot/              # FastAPI and conversational services
+├── dashboards/           # Gold-based dashboards
+├── data/                 # Local datasets (not versioned)
+├── docs/                 # Business rules and indicators
+├── etl/                  # Raw, Bronze, Silver, and Gold pipelines
+├── frontend/             # React, TypeScript, and Vite
+├── health/               # Data and service health checks
+├── postgres/             # Gold publishing, RAG, and history
+├── tests/                # Python tests
+├── main.py               # Data pipeline orchestrator
+├── docker-compose.yml    # Local services
+├── pyproject.toml        # Python configuration and dependencies
+├── COMMANDS.md           # Operational guide
+├── CHANGELOG.md          # Version history
 ├── LICENSE
 └── README.md
 ```
 
-## Limitações e pendências da Alpha 1
+## Limitations & Roadmap
 
-- Autenticação, autorização por usuário, isolamento de sessões, rate limiting e política de retenção ainda não foram implementados ou validados para uso público.
-- O PostgreSQL de desenvolvimento ainda requer revisão de privilégios mínimos e credenciais de serviço.
-- Falta ampliar os testes funcionais, principalmente séries anuais, educação superior/EAD, recortes inválidos, ausência de dados, isolamento de sessões e conferência independente do SQL Gold.
-- Não há comparação direta de municípios nem geração de gráficos e arquivos pelo chatbot.
-- As regras de negócio documentadas ainda têm aprovação pendente.
-- A interface funciona localmente, mas não foi submetida a testes de segurança nem preparada para implantação pública.
-- A integração com Gemini depende de um serviço externo, sujeito a cotas de utilização, limites de requisições, latência variável e indisponibilidade. O uso de um plano gratuito não garante disponibilidade contínua do chatbot.
+EI DataBot remains experimental. The main priorities are:
 
-## Licença
+- Implement authentication, authorization, and session isolation.
+- Review database privileges and service credentials.
+- Expand analytical tests, including yearly series, EAD, and invalid queries.
+- Add municipality comparisons and richer chatbot outputs.
+- Complete business-rule reviews and methodological validation.
+- Improve deployment security, monitoring, and reliability.
+- Expand the analytical interface and dashboard capabilities.
 
-Distribuído sob a [licença MIT](LICENSE), conforme o arquivo `LICENSE` do repositório.
+Gemini is an external service and may be subject to usage limits, latency, and temporary unavailability.
+
+**The application is not approved for public deployment in its current state.**
+
+## Versioning
+
+The project follows [Semantic Versioning](https://semver.org/) using `MAJOR.MINOR.PATCH`.
+
+The historical Alpha 1 tag is `v0.1.0-alpha.1`. The current documentation update uses `v0.1.1`.
+
+While the project remains experimental, GitHub releases are marked as pre-releases.
+
+See [CHANGELOG.md](CHANGELOG.md) for version history.
+
+## Links
+
+- [Project Page](https://renanmrbraga.vercel.app/projects/ei-databot?utm_source=github&utm_medium=social&utm_campaign=portfolio&utm_content=ei_databot)
+- [Developer Portfolio](https://renanmrbraga.vercel.app/?utm_source=github&utm_medium=social&utm_campaign=portfolio&utm_content=ei_databot)
+- [GitHub Profile](https://github.com/renanmrbraga)
+- [LinkedIn](https://www.linkedin.com/in/renanmrbraga)
+
+## License
+
+Distributed under the [MIT License](LICENSE).

@@ -1,18 +1,27 @@
 version: 2
+
 updates:
+  # Frontend dependencies.
   - package-ecosystem: "npm"
     directory: "/frontend"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/Sao_Paulo"
     commit-message:
       prefix: "chore"
       include: "scope"
     open-pull-requests-limit: 5
 
+  # Python dependencies.
   - package-ecosystem: "pip"
-    directory: "/backend"
+    directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/Sao_Paulo"
     commit-message:
       prefix: "chore"
       include: "scope"
