@@ -1,28 +1,48 @@
 version: 2
 
 updates:
-  # Frontend dependencies.
+  # Frontend - npm
   - package-ecosystem: "npm"
     directory: "/frontend"
+
     schedule:
       interval: "weekly"
       day: "monday"
       time: "09:00"
       timezone: "America/Sao_Paulo"
+
     commit-message:
       prefix: "chore"
       include: "scope"
+
     open-pull-requests-limit: 5
 
-  # Python dependencies.
+    groups:
+      minor-and-patch:
+        applies-to: version-updates
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Backend - Python
   - package-ecosystem: "pip"
     directory: "/"
+
     schedule:
       interval: "weekly"
       day: "monday"
       time: "09:00"
       timezone: "America/Sao_Paulo"
+
     commit-message:
       prefix: "chore"
       include: "scope"
+
     open-pull-requests-limit: 5
+
+    groups:
+      minor-and-patch:
+        applies-to: version-updates
+        update-types:
+          - "minor"
+          - "patch"
